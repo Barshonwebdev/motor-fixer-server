@@ -28,6 +28,7 @@ async function run() {
     await client.connect();
 
     const serviceCollection=client.db('motor-fixer').collection('services');
+    const bookingCollection=client.db('motor-fixer').collection('booking');
 
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find();
@@ -42,6 +43,13 @@ async function run() {
         projection: {_id:0,service_id:1,price:1, title:1, img:1,}
       }
       const result= await serviceCollection.findOne(query,options);
+      res.send(result);
+    })
+
+    app.post('/booking',async(req,res)=>{
+      const booking=req.body;
+      console.log(booking);
+      const result=await bookingCollection.insertOne(booking);
       res.send(result);
     })
     // Send a ping to confirm a successful connection
