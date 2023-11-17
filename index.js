@@ -1,14 +1,14 @@
-const express=require('express');
-const cors=require('cors');
+const express = require("express");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const app=express();
-const port= process.env.PORT || 5000;
-
+const app = express();
+const port = process.env.PORT || 5000;
+require("dotenv").config();
 //middlewares
 
 app.use(express.json());
 app.use(cors());
-
 
 const uri =
   "mongodb+srv://motor-fixer-admin:gRbJlcb4zcsDnsI9@cluster0.7di2jdk.mongodb.net/?retryWrites=true&w=majority";
@@ -27,63 +27,72 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const serviceCollection=client.db('motor-fixer').collection('services');
-    const bookingCollection=client.db('motor-fixer').collection('booking');
-
+    const serviceCollection = client.db("motor-fixer").collection("services");
+    const bookingCollection = client.db("motor-fixer").collection("booking");
+    //jwt
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.Access_Token_secret, {
+        expiresIn: "1h",
+      });
+      res.send({token});
+    });
+    //service route
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get("/services/:id", async(req,res)=>{
-      const id= req.params.id;
-      const query={_id:new ObjectId(id)};
-      const options={
-        projection: {_id:0,service_id:1,price:1, title:1, img:1,}
-      }
-      const result= await serviceCollection.findOne(query,options);
+    app.get("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = {
+        projection: { _id: 0, service_id: 1, price: 1, title: 1, img: 1 },
+      };
+      const result = await serviceCollection.findOne(query, options);
       res.send(result);
-    })
+    });
 
-    app.post('/booking',async(req,res)=>{
-      const booking=req.body;
+    app.post("/booking", async (req, res) => {
+      const booking = req.body;
       console.log(booking);
-      const result=await bookingCollection.insertOne(booking);
+      const result = await bookingCollection.insertOne(booking);
       res.send(result);
-    })
+    });
 
-    app.get('/booking',async(req,res)=>{
-      let query={};
-      if(req.query?.email){
-        query={email:req.query.email};
+    app.get("/booking", async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
       }
 
-      const result=await bookingCollection.find(query).toArray();
+      const result = await bookingCollection.find(query).toArray();
       res.send(result);
-    })
+    });
 
-    app.patch('/booking/:id',async(req,res)=>{
-      const updatedBooking=req.body;
+    app.patch("/booking/:id", async (req, res) => {
+      const updatedBooking = req.body;
       console.log(updatedBooking);
-      const id=req.params.id;
-      const filter={_id:new ObjectId(id)};
-      const updateDoc={
-        $set:{
-          status:updatedBooking.status
-        }
-      }
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: updatedBooking.status,
+        },
+      };
 
-      const result=await bookingCollection.updateOne(filter,updateDoc);
+      const result = await bookingCollection.updateOne(filter, updateDoc);
       res.send(result);
-    })
+    });
 
-    app.delete('/booking/:id',async(req,res)=>{
-      const id=req.params.id;
-      const query={_id:new ObjectId(id)};
-      const result=await bookingCollection.deleteOne(query);
+    app.delete("/booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingCollection.deleteOne(query);
       res.send(result);
-    })
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -96,13 +105,10 @@ async function run() {
 }
 run().catch(console.dir);
 
+app.get("/", (req, res) => {
+  res.send("motor fixer server is running");
+});
 
-app.get('/',(req,res)=>{
-    res.send('motor fixer server is running');
-})
-
-
-
-app.listen(port,()=>{
-    console.log(`server listening at port ${port}`)
-})
+app.listen(port, () => {
+  console.log(`server listening at port ${port}`);
+});
